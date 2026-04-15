@@ -1,77 +1,167 @@
 import { useState } from "react";
+import { supabase } from "./App";
 
+// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const C = {
-  bg: "#0D1117", card: "#161B22", cardBorder: "#21262D",
-  purple: "#7C6FE0", purpleLight: "#A89FF0", purpleDim: "#1E1A3A",
-  green: "#3FB68A", greenDim: "#0E2A1F",
-  amber: "#E8A838", amberDim: "#2A1E08",
-  red: "#E05555", redDim: "#2A0E0E",
-  text: "#E6EDF3", textSec: "#8B949E", textMuted: "#484F58",
+  bg: "#0A0E1A",
+  bgCard: "#0F1523",
+  border: "#1A2035",
+  borderHover: "#2A3555",
+  accent: "#6C63FF",
+  accentLight: "#9B95FF",
+  accentDim: "#15143A",
+  green: "#2DD4BF",
+  greenDim: "#0A2028",
+  amber: "#F59E0B",
+  amberDim: "#251800",
+  red: "#EF4444",
+  redDim: "#200A0A",
+  text: "#EDF2FF",
+  textSec: "#8892A4",
+  textMuted: "#3D4A63",
 };
 
 const inp = {
-  width: "100%", padding: "13px 14px", borderRadius: 12,
-  border: `0.5px solid ${C.cardBorder}`, background: C.card,
-  color: C.text, fontSize: 14, outline: "none",
-  marginBottom: 10, fontFamily: "'DM Sans', sans-serif",
+  width: "100%",
+  padding: "14px 16px",
+  borderRadius: 14,
+  border: `1px solid ${C.border}`,
+  background: C.bgCard,
+  color: C.text,
+  fontSize: 14,
+  outline: "none",
+  marginBottom: 12,
+  fontFamily: "'Sora', sans-serif",
+  transition: "border-color 0.2s",
 };
 
-function Checkbox({ checked, onChange, children, accent = C.purple }) {
+function Pill({ color, children }) {
   return (
-    <label style={{ display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer", marginBottom: 12 }}>
+    <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", background: `${color}22`, color, border: `1px solid ${color}44`, fontFamily: "'Sora', monospace" }}>
+      {children}
+    </span>
+  );
+}
+
+function Checkbox({ checked, onChange, children, accent = C.accent }) {
+  return (
+    <label style={{ display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer", marginBottom: 14, padding: "10px 12px", borderRadius: 12, background: checked ? `${accent}08` : "transparent", border: `1px solid ${checked ? accent + "33" : "transparent"}`, transition: "all 0.2s" }}>
       <div onClick={onChange} style={{
-        width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 2,
-        border: `1.5px solid ${checked ? accent : C.textMuted}`,
+        width: 22, height: 22, borderRadius: 7, flexShrink: 0, marginTop: 1,
+        border: `2px solid ${checked ? accent : C.textMuted}`,
         background: checked ? accent : "transparent",
         display: "flex", alignItems: "center", justifyContent: "center",
-        transition: "all 0.2s", cursor: "pointer",
+        transition: "all 0.2s",
       }}>
-        {checked && <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>✓</span>}
+        {checked && <span style={{ color: "#fff", fontSize: 12, fontWeight: 800, lineHeight: 1 }}>✓</span>}
       </div>
-      <span style={{ fontSize: 13, color: C.textSec, lineHeight: 1.5 }}>{children}</span>
+      <span style={{ fontSize: 13, color: checked ? C.text : C.textSec, lineHeight: 1.6 }}>{children}</span>
     </label>
   );
 }
 
 function PrivacyModal({ onClose }) {
   const sections = [
-    { title: "1. Données collectées", text: "Nous collectons votre email, prénom, âge, profession et vos réponses au check-in quotidien (humeur, sommeil, énergie, stress). Nous ne collectons jamais votre localisation, vos contacts ou vos données financières." },
-    { title: "2. Utilisation de vos données", text: "Vos données servent uniquement à calculer votre score bien-être, vous envoyer des alertes précoces et personnaliser vos conseils. Elles ne sont jamais vendues à des tiers sous forme identifiable." },
-    { title: "3. Partage anonymisé (opt-in)", text: "Si vous y consentez, vos données sont agrégées et anonymisées (impossible de vous identifier) avant tout partage avec des partenaires. Exemple : '68% des utilisateurs ont un score bas le lundi.' Vous pouvez retirer ce consentement à tout moment." },
-    { title: "4. Vos droits RGPD", text: "Accès, rectification, suppression, portabilité, opposition. Contactez : privacy@mindguard.app. Délai de réponse : 30 jours. Réclamation possible auprès de la CNIL : cnil.fr" },
-    { title: "5. Sécurité", text: "Chiffrement TLS 1.3 en transit, AES-256 au repos. Hébergement en Union Européenne uniquement." },
+    {
+      title: "1. Responsable du traitement",
+      text: "MindGuard SAS — Cayenne, Guyane française — privacy@mindguard.app — Conformément au RGPD (Règlement UE 2016/679).",
+    },
+    {
+      title: "2. Données collectées",
+      text: "Données d'identification : email, prénom, âge, profession. Données de bien-être : réponses au check-in quotidien (humeur, sommeil, stress, énergie). Données techniques : logs de connexion (sécurité). Nous ne collectons jamais votre localisation, contacts ou données bancaires.",
+    },
+    {
+      title: "3. Base légale (Art. 6 & 9 RGPD)",
+      text: "Vos données de bien-être relèvent de l'Art. 9 RGPD (données sensibles). Leur traitement repose exclusivement sur votre consentement explicite et révocable. Les données de compte reposent sur l'exécution du contrat.",
+    },
+    {
+      title: "4. Partage de données",
+      text: "MindGuard ne vend jamais de données identifiables. Seules des données 100% anonymisées et agrégées peuvent être partagées (k-anonymat k≥10), uniquement avec votre consentement opt-in explicite. Chaque partenaire signe un accord anti-ré-identification.",
+    },
+    {
+      title: "5. Vos droits RGPD (Art. 15-21)",
+      text: "Accès · Rectification · Suppression · Portabilité · Opposition · Retrait du consentement. Contactez : privacy@mindguard.app — Délai de réponse : 30 jours. Réclamation CNIL : cnil.fr",
+    },
+    {
+      title: "6. Sécurité & hébergement",
+      text: "Chiffrement TLS 1.3 en transit, AES-256 au repos. Hébergement exclusif en Union Européenne. Hachage bcrypt pour les mots de passe. Journalisation des accès.",
+    },
+    {
+      title: "7. Durée de conservation",
+      text: "Données de compte : durée du compte + 30 jours. Données bien-être : 3 ans glissants. Logs de sécurité : 12 mois. Données marketing : jusqu'au retrait du consentement + 3 ans (preuve légale).",
+    },
   ];
+
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <div style={{ background: C.card, borderRadius: "20px 20px 0 0", border: `0.5px solid ${C.cardBorder}`, padding: 24, maxWidth: 420, width: "100%", maxHeight: "80vh", overflowY: "auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <span style={{ fontSize: 16, fontWeight: 600, color: C.text }}>Politique de confidentialité</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 20, cursor: "pointer" }}>✕</button>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 16px" }}>
+      <div style={{ background: C.bgCard, borderRadius: "24px 24px 0 0", border: `1px solid ${C.border}`, padding: 28, maxWidth: 500, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: C.text, marginBottom: 4 }}>Politique de confidentialité</div>
+            <Pill color={C.green}>RGPD Conforme · v1.0 · Avril 2026</Pill>
+          </div>
+          <button onClick={onClose} style={{ background: C.border, border: "none", color: C.textSec, width: 32, height: 32, borderRadius: "50%", cursor: "pointer", fontSize: 16 }}>✕</button>
         </div>
         {sections.map((s, i) => (
-          <div key={i} style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 5 }}>{s.title}</div>
-            <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.7 }}>{s.text}</div>
+          <div key={i} style={{ marginBottom: 18, paddingBottom: 18, borderBottom: i < sections.length - 1 ? `1px solid ${C.border}` : "none" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.accentLight, marginBottom: 7 }}>{s.title}</div>
+            <div style={{ fontSize: 12.5, color: C.textSec, lineHeight: 1.75 }}>{s.text}</div>
           </div>
         ))}
-        <div style={{ background: C.amberDim, border: `0.5px solid ${C.amber}`, borderRadius: 12, padding: 12, marginBottom: 16 }}>
-          <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 3 }}>Important</div>
-          <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.5 }}>MindGuard est une application de bien-être, pas un dispositif médical. Elle ne remplace pas un avis médical professionnel. En cas de détresse sérieuse, consultez un médecin ou appelez le 3114.</div>
+        <div style={{ background: C.amberDim, border: `1px solid ${C.amber}44`, borderRadius: 14, padding: 14, marginBottom: 20 }}>
+          <div style={{ fontSize: 12, color: C.amber, fontWeight: 700, marginBottom: 5 }}>⚕️ Avertissement médical</div>
+          <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.6 }}>MindGuard est un outil de bien-être et de prévention, pas un dispositif médical. Il ne pose aucun diagnostic et ne remplace pas une consultation professionnelle. En cas de détresse : appelez le <strong style={{ color: C.text }}>3114</strong> ou le <strong style={{ color: C.text }}>15</strong>.</div>
         </div>
-        <button onClick={onClose} style={{ width: "100%", padding: 13, borderRadius: 12, background: C.purple, color: "#fff", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Fermer</button>
+        <button onClick={onClose} style={{ width: "100%", padding: 14, borderRadius: 14, background: C.accent, color: "#fff", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Sora', sans-serif" }}>Compris, fermer</button>
       </div>
     </div>
   );
 }
 
+function CGUModal({ onClose }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 16px" }}>
+      <div style={{ background: C.bgCard, borderRadius: "24px 24px 0 0", border: `1px solid ${C.border}`, padding: 28, maxWidth: 500, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: C.text, marginBottom: 4 }}>Conditions Générales d'Utilisation</div>
+            <Pill color={C.accent}>Version 1.0 · Avril 2026</Pill>
+          </div>
+          <button onClick={onClose} style={{ background: C.border, border: "none", color: C.textSec, width: 32, height: 32, borderRadius: "50%", cursor: "pointer", fontSize: 16 }}>✕</button>
+        </div>
+
+        {[
+          { title: "Art. 1 — Nature du service", text: "MindGuard est une application de suivi du bien-être mental. Elle propose un check-in quotidien, un score de bien-être algorithmique, des alertes précoces non médicales et des conseils personnalisés." },
+          { title: "Art. 2 — Ce que MindGuard n'est PAS", text: "MindGuard n'est pas un dispositif médical, ne pose aucun diagnostic, ne remplace pas un médecin ou psychologue, et n'est pas un service d'urgence." },
+          { title: "Art. 3 — Âge minimum", text: "L'utilisation est réservée aux personnes de 16 ans et plus. Pour les 16-18 ans, l'accord d'un représentant légal est requis." },
+          { title: "Art. 4 — Compte utilisateur", text: "Un compte par personne. L'utilisateur est responsable de la confidentialité de ses identifiants. Tout accès frauduleux est de sa responsabilité." },
+          { title: "Art. 5 — Tarifs", text: "Plan Gratuit : check-in quotidien, score hebdomadaire, historique 7 jours. Plan Premium (7,99€/mois) : historique illimité, alertes précoces, coach IA quotidien, rapport PDF médecin." },
+          { title: "Art. 6 — Limitation de responsabilité", text: "MindGuard SAS ne saurait être tenu responsable des décisions prises par l'utilisateur sur la base des informations de l'application, ni d'une dégradation de l'état de santé." },
+          { title: "Art. 7 — Résiliation", text: "L'utilisateur peut supprimer son compte à tout moment. Toutes ses données sont effacées dans un délai de 30 jours." },
+          { title: "Art. 8 — Droit applicable", text: "CGU soumises au droit français. Tribunaux compétents : Cayenne (Guyane). Médiation consommateur disponible (Art. L.612-1 Code de la consommation)." },
+        ].map((s, i, arr) => (
+          <div key={i} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none" }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: C.text, marginBottom: 6 }}>{s.title}</div>
+            <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.7 }}>{s.text}</div>
+          </div>
+        ))}
+        <button onClick={onClose} style={{ width: "100%", padding: 14, borderRadius: 14, background: C.accent, color: "#fff", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Sora', sans-serif", marginTop: 8 }}>Compris, fermer</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN AUTH COMPONENT ──────────────────────────────────────────────────────
 export default function Auth({ onSuccess }) {
-  const [mode, setMode] = useState("register"); // register | login
+  const [mode, setMode] = useState("register");
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ email: "", password: "", confirm: "", prenom: "", age: "", profession: "" });
   const [consents, setConsents] = useState({ cgu: false, rgpd: false, analytics_anon: false, partner_anon: false, marketing: false, research: false });
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showCGU, setShowCGU] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [supabaseMode] = useState(false); // Passe à true quand tu configures Supabase
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const toggle = k => setConsents(c => ({ ...c, [k]: !c[k] }));
@@ -87,134 +177,200 @@ export default function Auth({ onSuccess }) {
 
   function validateStep2() {
     const e = {};
-    if (!form.prenom) e.prenom = "Requis";
-    if (!form.age || form.age < 16 || form.age > 120) e.age = "Âge invalide (min. 16 ans)";
+    if (!form.prenom.trim()) e.prenom = "Prénom requis";
+    if (!form.age || Number(form.age) < 16 || Number(form.age) > 120) e.age = "Âge invalide (min. 16 ans)";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
-  function handleLogin() {
+  async function handleLogin() {
     if (!validateStep1()) return;
     setLoading(true);
-    setTimeout(() => { setLoading(false); onSuccess({ prenom: form.email.split("@")[0], email: form.email, consents }); }, 1200);
+    setErrors({});
+    try {
+      if (supabaseMode) {
+        const { access_token, user, error } = await supabase.signIn(form.email, form.password);
+        if (error) throw new Error("Email ou mot de passe incorrect");
+        // Récupère le profil depuis la table 'profiles'
+        const profiles = await supabase.query("profiles", "GET", null, `?user_id=eq.${user.id}&select=*`);
+        const profile = profiles[0] || {};
+        onSuccess({ id: user.id, email: user.email, prenom: profile.prenom || user.email.split("@")[0], token: access_token, consents: profile.consents || {} });
+      } else {
+        // Mode démo sans Supabase
+        setTimeout(() => {
+          setLoading(false);
+          onSuccess({ email: form.email, prenom: form.email.split("@")[0], consents: {}, demo: true });
+        }, 1200);
+        return;
+      }
+    } catch (err) {
+      setErrors({ submit: err.message });
+    }
+    setLoading(false);
   }
 
-  function handleSubmit() {
-    if (!consents.cgu || !consents.rgpd) { setErrors({ submit: "Vous devez accepter les CGU et la politique de confidentialité." }); return; }
+  async function handleSubmit() {
+    if (!consents.cgu || !consents.rgpd) {
+      setErrors({ submit: "Vous devez accepter les CGU et la politique de confidentialité pour continuer." });
+      return;
+    }
     setLoading(true);
-    setTimeout(() => { setLoading(false); onSuccess({ prenom: form.prenom, email: form.email, consents }); }, 1500);
+    setErrors({});
+    try {
+      if (supabaseMode) {
+        const { access_token, user, error } = await supabase.signUp(form.email, form.password);
+        if (error) throw new Error(error.message);
+        // Crée le profil avec consentements horodatés
+        await supabase.query("profiles", "POST", {
+          user_id: user.id,
+          prenom: form.prenom,
+          age: Number(form.age),
+          profession: form.profession,
+          consents: {
+            ...consents,
+            timestamp: new Date().toISOString(),
+            ip_hash: "hashed", // à hasher côté serveur en production
+          },
+          plan: "free",
+          created_at: new Date().toISOString(),
+        });
+        onSuccess({ id: user.id, email: form.email, prenom: form.prenom, token: access_token, consents });
+      } else {
+        // Mode démo
+        setTimeout(() => {
+          setLoading(false);
+          onSuccess({ email: form.email, prenom: form.prenom, consents, demo: true });
+        }, 1500);
+        return;
+      }
+    } catch (err) {
+      setErrors({ submit: err.message });
+    }
+    setLoading(false);
   }
 
-  const btnPrimary = { width: "100%", padding: 14, borderRadius: 12, background: loading ? C.textMuted : C.purple, color: "#fff", border: "none", fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif" };
-  const btnSecondary = { flex: 1, padding: 14, borderRadius: 12, background: "none", color: C.textSec, border: `0.5px solid ${C.cardBorder}`, fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" };
-  const errStyle = { fontSize: 11, color: C.red, marginTop: -6, marginBottom: 8 };
+  const steps = ["Compte", "Profil", "Confidentialité"];
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'DM Sans', sans-serif", color: C.text, maxWidth: 420, margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Sora', sans-serif", color: C.text }}>
       {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
+      {showCGU && <CGUModal onClose={() => setShowCGU(false)} />}
 
-      {/* Header */}
-      <div style={{ padding: "20px 20px 16px", borderBottom: `0.5px solid ${C.cardBorder}` }}>
-        <div style={{ fontSize: 11, color: C.purple, letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono', monospace" }}>MindGuard</div>
-        <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Bien-être mental, détection précoce</div>
-      </div>
+      {/* Background glow */}
+      <div style={{ position: "fixed", top: -100, left: "50%", transform: "translateX(-50%)", width: 400, height: 400, borderRadius: "50%", background: `radial-gradient(circle, ${C.accent}15 0%, transparent 70%)`, pointerEvents: "none" }} />
 
-      <div style={{ padding: "0 20px 40px" }}>
+      <div style={{ maxWidth: 420, margin: "0 auto", padding: "0 20px", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
 
-        {/* Toggle register / login */}
-        <div style={{ display: "flex", gap: 0, margin: "20px 0 24px", background: C.card, borderRadius: 12, padding: 4, border: `0.5px solid ${C.cardBorder}` }}>
+        {/* Logo */}
+        <div style={{ paddingTop: 40, paddingBottom: 32, display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${C.accent}, ${C.green})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🧠</div>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.5 }}>MindGuard</div>
+            <div style={{ fontSize: 10, color: C.textMuted, letterSpacing: 1 }}>BIEN-ÊTRE MENTAL</div>
+          </div>
+        </div>
+
+        {/* Mode toggle */}
+        <div style={{ display: "flex", gap: 4, background: C.bgCard, borderRadius: 14, padding: 4, marginBottom: 28, border: `1px solid ${C.border}` }}>
           {["register", "login"].map(m => (
             <button key={m} onClick={() => { setMode(m); setStep(1); setErrors({}); }} style={{
-              flex: 1, padding: "9px 0", borderRadius: 10, border: "none",
-              background: mode === m ? C.purple : "transparent",
+              flex: 1, padding: "10px 0", borderRadius: 10, border: "none", cursor: "pointer",
+              background: mode === m ? C.accent : "transparent",
               color: mode === m ? "#fff" : C.textSec,
-              fontSize: 13, fontWeight: mode === m ? 600 : 400, cursor: "pointer",
-              fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s"
-            }}>{m === "register" ? "Inscription" : "Connexion"}</button>
+              fontSize: 13, fontWeight: 600, transition: "all 0.2s", fontFamily: "'Sora', sans-serif",
+            }}>
+              {m === "register" ? "Créer un compte" : "Se connecter"}
+            </button>
           ))}
         </div>
 
-        {/* LOGIN */}
+        {/* Login */}
         {mode === "login" && (
           <div>
-            <div style={{ fontSize: 20, fontWeight: 600, color: C.text, marginBottom: 6, fontFamily: "'Playfair Display', serif" }}>Bon retour !</div>
-            <div style={{ fontSize: 13, color: C.textSec, marginBottom: 24 }}>Connecte-toi à ton espace MindGuard.</div>
-            <label style={{ fontSize: 12, color: C.textSec, marginBottom: 5, display: "block" }}>Email</label>
+            <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6, letterSpacing: -0.5 }}>Bon retour 👋</div>
+            <div style={{ fontSize: 13, color: C.textSec, marginBottom: 24 }}>Connecte-toi pour accéder à ton tableau de bord.</div>
+            <label style={{ fontSize: 12, color: C.textSec, marginBottom: 6, display: "block", fontWeight: 600 }}>Email</label>
             <input style={inp} type="email" placeholder="toi@example.com" value={form.email} onChange={e => set("email", e.target.value)} />
-            {errors.email && <div style={errStyle}>{errors.email}</div>}
-            <label style={{ fontSize: 12, color: C.textSec, marginBottom: 5, display: "block" }}>Mot de passe</label>
-            <input style={inp} type="password" placeholder="Ton mot de passe" value={form.password} onChange={e => set("password", e.target.value)} />
-            {errors.password && <div style={errStyle}>{errors.password}</div>}
-            <button onClick={handleLogin} disabled={loading} style={{ ...btnPrimary, marginTop: 8 }}>{loading ? "Connexion..." : "Se connecter"}</button>
-            <div style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: C.textSec }}>
-              Pas encore de compte ?{" "}
-              <span onClick={() => setMode("register")} style={{ color: C.purpleLight, cursor: "pointer" }}>S'inscrire</span>
-            </div>
+            {errors.email && <div style={{ fontSize: 11, color: C.red, marginTop: -8, marginBottom: 10 }}>{errors.email}</div>}
+            <label style={{ fontSize: 12, color: C.textSec, marginBottom: 6, display: "block", fontWeight: 600 }}>Mot de passe</label>
+            <input style={inp} type="password" placeholder="••••••••" value={form.password} onChange={e => set("password", e.target.value)} />
+            {errors.submit && (
+              <div style={{ background: C.redDim, border: `1px solid ${C.red}33`, borderRadius: 12, padding: 12, marginBottom: 14, fontSize: 12.5, color: C.red }}>{errors.submit}</div>
+            )}
+            <button onClick={handleLogin} disabled={loading} style={{ width: "100%", padding: 15, borderRadius: 14, background: loading ? C.textMuted : C.accent, color: "#fff", border: "none", fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Sora', sans-serif", marginTop: 4 }}>
+              {loading ? "Connexion..." : "Me connecter →"}
+            </button>
           </div>
         )}
 
-        {/* REGISTER */}
+        {/* Register multi-step */}
         {mode === "register" && (
-          <div>
-            {/* Progress */}
-            <div style={{ display: "flex", gap: 6, marginBottom: 28 }}>
-              {["Compte", "Profil", "Consentements"].map((s, i) => (
-                <div key={i} style={{ flex: 1, textAlign: "center" }}>
-                  <div style={{ height: 3, borderRadius: 2, marginBottom: 5, background: i < step ? C.purple : i === step - 1 ? C.purple : C.cardBorder, transition: "background 0.3s" }} />
-                  <div style={{ fontSize: 10, color: i === step - 1 ? C.purpleLight : C.textMuted }}>{s}</div>
+          <div style={{ flex: 1 }}>
+            {/* Step indicator */}
+            <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 28 }}>
+              {steps.map((s, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", flex: 1 }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 12, fontWeight: 700,
+                      background: i + 1 < step ? C.green : i + 1 === step ? C.accent : C.border,
+                      color: i + 1 <= step ? "#fff" : C.textMuted,
+                      transition: "all 0.3s",
+                    }}>
+                      {i + 1 < step ? "✓" : i + 1}
+                    </div>
+                    <div style={{ fontSize: 10, color: i + 1 === step ? C.text : C.textMuted, fontWeight: i + 1 === step ? 600 : 400 }}>{s}</div>
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div style={{ flex: 1, height: 2, background: i + 1 < step ? C.green : C.border, margin: "0 6px", marginBottom: 18, transition: "background 0.3s" }} />
+                  )}
                 </div>
               ))}
             </div>
 
-            {/* STEP 1 */}
+            {/* STEP 1 — Compte */}
             {step === 1 && (
               <div>
-                <div style={{ fontSize: 20, fontWeight: 600, color: C.text, marginBottom: 6, fontFamily: "'Playfair Display', serif" }}>Créer ton compte</div>
-                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 24 }}>Tes données restent privées et sécurisées.</div>
-                <label style={{ fontSize: 12, color: C.textSec, marginBottom: 5, display: "block" }}>Adresse email</label>
+                <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6, letterSpacing: -0.5 }}>Crée ton compte</div>
+                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 24 }}>Ton email ne sera jamais partagé ni vendu.</div>
+                <label style={{ fontSize: 12, color: C.textSec, marginBottom: 6, display: "block", fontWeight: 600 }}>Adresse email</label>
                 <input style={inp} type="email" placeholder="toi@example.com" value={form.email} onChange={e => set("email", e.target.value)} />
-                {errors.email && <div style={errStyle}>{errors.email}</div>}
-                <label style={{ fontSize: 12, color: C.textSec, marginBottom: 5, display: "block" }}>Mot de passe</label>
+                {errors.email && <div style={{ fontSize: 11, color: C.red, marginTop: -8, marginBottom: 10 }}>{errors.email}</div>}
+                <label style={{ fontSize: 12, color: C.textSec, marginBottom: 6, display: "block", fontWeight: 600 }}>Mot de passe</label>
                 <input style={inp} type="password" placeholder="Minimum 8 caractères" value={form.password} onChange={e => set("password", e.target.value)} />
-                {errors.password && <div style={errStyle}>{errors.password}</div>}
-                <label style={{ fontSize: 12, color: C.textSec, marginBottom: 5, display: "block" }}>Confirmer le mot de passe</label>
+                {errors.password && <div style={{ fontSize: 11, color: C.red, marginTop: -8, marginBottom: 10 }}>{errors.password}</div>}
+                <label style={{ fontSize: 12, color: C.textSec, marginBottom: 6, display: "block", fontWeight: 600 }}>Confirmer le mot de passe</label>
                 <input style={inp} type="password" placeholder="Répète ton mot de passe" value={form.confirm} onChange={e => set("confirm", e.target.value)} />
-                {errors.confirm && <div style={errStyle}>{errors.confirm}</div>}
-                <div style={{ background: C.greenDim, border: `0.5px solid ${C.green}`, borderRadius: 12, padding: 12, marginBottom: 20 }}>
-                  <div style={{ fontSize: 12, color: C.green, lineHeight: 1.5 }}>🔒 Ton email ne sera jamais partagé. Il sert uniquement à te connecter et t'envoyer tes alertes bien-être.</div>
+                {errors.confirm && <div style={{ fontSize: 11, color: C.red, marginTop: -8, marginBottom: 10 }}>{errors.confirm}</div>}
+                <div style={{ background: C.greenDim, border: `1px solid ${C.green}33`, borderRadius: 12, padding: 12, marginBottom: 20, fontSize: 12, color: C.green, lineHeight: 1.6 }}>
+                  🔒 Mot de passe haché avec bcrypt · Connexion TLS 1.3 · Hébergement UE uniquement
                 </div>
-                <button onClick={() => validateStep1() && setStep(2)} style={btnPrimary}>Continuer →</button>
-                <div style={{ textAlign: "center", marginTop: 14, fontSize: 13, color: C.textSec }}>
-                  Déjà un compte ?{" "}
-                  <span onClick={() => setMode("login")} style={{ color: C.purpleLight, cursor: "pointer" }}>Se connecter</span>
-                </div>
+                <button onClick={() => validateStep1() && setStep(2)} style={{ width: "100%", padding: 15, borderRadius: 14, background: C.accent, color: "#fff", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Sora', sans-serif" }}>
+                  Continuer →
+                </button>
               </div>
             )}
 
-            {/* STEP 2 */}
+            {/* STEP 2 — Profil */}
             {step === 2 && (
               <div>
-                <div style={{ fontSize: 20, fontWeight: 600, color: C.text, marginBottom: 6, fontFamily: "'Playfair Display', serif" }}>Ton profil</div>
-                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 24 }}>Ces infos permettent de personnaliser tes conseils.</div>
-                <label style={{ fontSize: 12, color: C.textSec, marginBottom: 5, display: "block" }}>Prénom</label>
+                <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6, letterSpacing: -0.5 }}>Ton profil</div>
+                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 24 }}>Permet de personnaliser tes conseils. Ces données restent privées.</div>
+                <label style={{ fontSize: 12, color: C.textSec, marginBottom: 6, display: "block", fontWeight: 600 }}>Prénom *</label>
                 <input style={inp} type="text" placeholder="Ton prénom" value={form.prenom} onChange={e => set("prenom", e.target.value)} />
-                {errors.prenom && <div style={errStyle}>{errors.prenom}</div>}
-                <label style={{ fontSize: 12, color: C.textSec, marginBottom: 5, display: "block" }}>Âge</label>
-                <input style={inp} type="number" placeholder="Ton âge (min. 16 ans)" value={form.age} onChange={e => set("age", e.target.value)} />
-                {errors.age && <div style={errStyle}>{errors.age}</div>}
-                <label style={{ fontSize: 12, color: C.textSec, marginBottom: 5, display: "block" }}>Profession (optionnel)</label>
+                {errors.prenom && <div style={{ fontSize: 11, color: C.red, marginTop: -8, marginBottom: 10 }}>{errors.prenom}</div>}
+                <label style={{ fontSize: 12, color: C.textSec, marginBottom: 6, display: "block", fontWeight: 600 }}>Âge * (min. 16 ans)</label>
+                <input style={inp} type="number" placeholder="Ton âge" value={form.age} onChange={e => set("age", e.target.value)} />
+                {errors.age && <div style={{ fontSize: 11, color: C.red, marginTop: -8, marginBottom: 10 }}>{errors.age}</div>}
+                <label style={{ fontSize: 12, color: C.textSec, marginBottom: 6, display: "block", fontWeight: 600 }}>Profession (optionnel)</label>
                 <select style={{ ...inp, marginBottom: 20 }} value={form.profession} onChange={e => set("profession", e.target.value)}>
                   <option value="">Sélectionner...</option>
-                  <option>Salarié(e)</option>
-                  <option>Indépendant(e) / Freelance</option>
-                  <option>Étudiant(e)</option>
-                  <option>Sans emploi</option>
-                  <option>Retraité(e)</option>
-                  <option>Autre</option>
+                  {["Salarié(e)", "Indépendant(e) / Freelance", "Étudiant(e)", "Sans emploi", "Retraité(e)", "Professionnel de santé", "Enseignant(e)", "Autre"].map(p => <option key={p}>{p}</option>)}
                 </select>
                 <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={() => setStep(1)} style={btnSecondary}>← Retour</button>
-                  <button onClick={() => validateStep2() && setStep(3)} style={{ ...btnPrimary, flex: 2 }}>Continuer →</button>
+                  <button onClick={() => setStep(1)} style={{ flex: 1, padding: 15, borderRadius: 14, background: "transparent", color: C.textSec, border: `1px solid ${C.border}`, fontSize: 13, cursor: "pointer", fontFamily: "'Sora', sans-serif" }}>← Retour</button>
+                  <button onClick={() => validateStep2() && setStep(3)} style={{ flex: 2, padding: 15, borderRadius: 14, background: C.accent, color: "#fff", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Sora', sans-serif" }}>Continuer →</button>
                 </div>
               </div>
             )}
@@ -222,69 +378,76 @@ export default function Auth({ onSuccess }) {
             {/* STEP 3 — Consentements */}
             {step === 3 && (
               <div>
-                <div style={{ fontSize: 20, fontWeight: 600, color: C.text, marginBottom: 6, fontFamily: "'Playfair Display', serif" }}>Tes choix de confidentialité</div>
-                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Tu es en contrôle total. Lis chaque option avant d'accepter.</div>
+                <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6, letterSpacing: -0.5 }}>Tes choix</div>
+                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 22 }}>Tu contrôles totalement tes données. Chaque consentement est indépendant et révocable.</div>
 
                 {/* Obligatoires */}
-                <div style={{ background: C.card, border: `0.5px solid ${C.cardBorder}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, color: C.red, letterSpacing: 1, textTransform: "uppercase", marginBottom: 12, fontFamily: "'DM Mono', monospace" }}>Obligatoires</div>
+                <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: 16, marginBottom: 14 }}>
+                  <div style={{ marginBottom: 14 }}><Pill color={C.red}>Obligatoires</Pill></div>
                   <Checkbox checked={consents.cgu} onChange={() => toggle("cgu")}>
-                    J'accepte les Conditions Générales d'Utilisation. MindGuard est un outil de bien-être, pas un dispositif médical.
+                    J'accepte les{" "}
+                    <span onClick={() => setShowCGU(true)} style={{ color: C.accentLight, cursor: "pointer", textDecoration: "underline" }}>Conditions Générales d'Utilisation</span>.
+                    MindGuard est un outil de bien-être, non un dispositif médical.
                   </Checkbox>
                   <Checkbox checked={consents.rgpd} onChange={() => toggle("rgpd")}>
-                    J'ai lu et j'accepte la{" "}
-                    <span onClick={() => setShowPrivacy(true)} style={{ color: C.purpleLight, textDecoration: "underline", cursor: "pointer" }}>Politique de confidentialité</span>.
-                    Mes données sont traitées conformément au RGPD.
+                    J'ai lu et accepte la{" "}
+                    <span onClick={() => setShowPrivacy(true)} style={{ color: C.accentLight, cursor: "pointer", textDecoration: "underline" }}>Politique de confidentialité</span>.
+                    Mes données sont traitées selon le RGPD.
                   </Checkbox>
                 </div>
 
                 {/* Partage anonymisé */}
-                <div style={{ background: C.card, border: `0.5px solid ${C.cardBorder}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, color: C.amber, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, fontFamily: "'DM Mono', monospace" }}>Optionnels — Partage anonymisé</div>
-                  <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 12, lineHeight: 1.5 }}>Données 100% anonymisées — impossible de t'identifier. Tu peux changer d'avis à tout moment.</div>
+                <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: 16, marginBottom: 14 }}>
+                  <div style={{ marginBottom: 6 }}><Pill color={C.amber}>Optionnel · Partage anonymisé</Pill></div>
+                  <div style={{ fontSize: 11.5, color: C.textMuted, marginBottom: 14, lineHeight: 1.6 }}>Données 100% anonymisées — impossible de t'identifier. K-anonymat ≥ 10. Révocable à tout moment dans les paramètres.</div>
                   <Checkbox checked={consents.analytics_anon} onChange={() => toggle("analytics_anon")} accent={C.amber}>
-                    Partager mes données anonymisées pour améliorer l'algorithme MindGuard.
+                    Améliorer l'algorithme MindGuard avec mes données anonymisées.
                   </Checkbox>
                   <Checkbox checked={consents.partner_anon} onChange={() => toggle("partner_anon")} accent={C.amber}>
-                    Partager mes données anonymisées avec nos partenaires (mutuelles, RH, chercheurs).
-                    <span style={{ display: "block", fontSize: 11, color: C.textMuted, marginTop: 3 }}>Contrepartie : 1 mois Premium offert.</span>
+                    Partager mes données anonymisées avec nos partenaires certifiés (mutuelles, DRH, chercheurs).
+                    <span style={{ display: "block", fontSize: 11, color: C.amber, marginTop: 4, fontWeight: 600 }}>🎁 1 mois Premium offert en échange</span>
                   </Checkbox>
                 </div>
 
                 {/* Communications */}
-                <div style={{ background: C.card, border: `0.5px solid ${C.cardBorder}`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, color: C.green, letterSpacing: 1, textTransform: "uppercase", marginBottom: 12, fontFamily: "'DM Mono', monospace" }}>Optionnels — Communications</div>
+                <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
+                  <div style={{ marginBottom: 12 }}><Pill color={C.green}>Optionnel · Communications</Pill></div>
                   <Checkbox checked={consents.research} onChange={() => toggle("research")} accent={C.green}>
                     Participer à des études scientifiques anonymes sur la santé mentale.
                   </Checkbox>
                   <Checkbox checked={consents.marketing} onChange={() => toggle("marketing")} accent={C.green}>
-                    Recevoir des conseils bien-être et actualités MindGuard par email (max. 2/mois).
+                    Recevoir conseils bien-être et actualités MindGuard par email (max. 2/mois, désinscription 1 clic).
                   </Checkbox>
                 </div>
 
                 {consents.partner_anon && (
-                  <div style={{ background: C.amberDim, border: `0.5px solid ${C.amber}`, borderRadius: 12, padding: 12, marginBottom: 14 }}>
-                    <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 3 }}>Merci !</div>
-                    <div style={{ fontSize: 12, color: C.textSec }}>Tu recevras 1 mois Premium gratuit pour ton partage de données anonymisées.</div>
+                  <div style={{ background: C.amberDim, border: `1px solid ${C.amber}44`, borderRadius: 14, padding: 14, marginBottom: 16 }}>
+                    <div style={{ fontSize: 12.5, color: C.amber, fontWeight: 700, marginBottom: 4 }}>🎉 Merci pour ta confiance !</div>
+                    <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.6 }}>Tu recevras 1 mois Premium gratuit activé automatiquement après ta confirmation d'email.</div>
                   </div>
                 )}
 
                 {errors.submit && (
-                  <div style={{ background: C.redDim, border: `0.5px solid ${C.red}`, borderRadius: 12, padding: 12, marginBottom: 14, fontSize: 12, color: C.red }}>{errors.submit}</div>
+                  <div style={{ background: C.redDim, border: `1px solid ${C.red}33`, borderRadius: 12, padding: 14, marginBottom: 16, fontSize: 12.5, color: C.red, lineHeight: 1.6 }}>{errors.submit}</div>
                 )}
 
                 <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={() => setStep(2)} style={btnSecondary}>← Retour</button>
-                  <button onClick={handleSubmit} disabled={loading} style={{ ...btnPrimary, flex: 2 }}>{loading ? "Création du compte..." : "Créer mon compte ✓"}</button>
+                  <button onClick={() => setStep(2)} style={{ flex: 1, padding: 15, borderRadius: 14, background: "transparent", color: C.textSec, border: `1px solid ${C.border}`, fontSize: 13, cursor: "pointer", fontFamily: "'Sora', sans-serif" }}>← Retour</button>
+                  <button onClick={handleSubmit} disabled={loading} style={{ flex: 2, padding: 15, borderRadius: 14, background: loading ? C.textMuted : C.accent, color: "#fff", border: "none", fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Sora', sans-serif" }}>
+                    {loading ? "Création..." : "Créer mon compte ✓"}
+                  </button>
                 </div>
 
-                <div style={{ fontSize: 11, color: C.textMuted, textAlign: "center", marginTop: 16, lineHeight: 1.6 }}>
-                  Conformément au RGPD, tu peux exercer tes droits à tout moment en écrivant à privacy@mindguard.app
+                <div style={{ fontSize: 11, color: C.textMuted, textAlign: "center", marginTop: 18, lineHeight: 1.7 }}>
+                  Conformément au RGPD, tu peux exercer tes droits à tout moment · privacy@mindguard.app
+                  <br />Consentements horodatés et archivés conformément à l'Art. 7 RGPD
                 </div>
               </div>
             )}
           </div>
         )}
+
+        <div style={{ paddingBottom: 40 }} />
       </div>
     </div>
   );
