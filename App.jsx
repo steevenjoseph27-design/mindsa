@@ -5,7 +5,7 @@ import Dashboard from "./Dashboard";
 // ─── SUPABASE CONFIG (projet "défaut") ───────────────────────────────────────
 // ✅ Déjà configuré — remplace uniquement SUPABASE_URL par ton URL depuis Data API
 export const SUPABASE_URL = "https://cssbnvwgutkphmajzzst.supabase.co";
-export const SUPABASE_ANON_KEY = "sb_publishable_pUS5UL-8mxHtFskXHMI5ow_sZhl26fc";
+export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzc2JudndndXRrcGhtYWp6enN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxOTg3OTQsImV4cCI6MjA5MTc3NDc5NH0.ADoh4UET0vOD_XtvGM4mDY7sSMy439O-YE1fKKaOxU0";
 
 // ─── CLIENT SUPABASE LÉGER ────────────────────────────────────────────────────
 export const supabase = {
